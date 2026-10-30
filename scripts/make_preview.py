@@ -37,7 +37,9 @@ def main():
         if not writer.isOpened():
             raise RuntimeError('OpenCV could not initialize its MP4 writer')
         try:
-            with SLAMEnvironment(cfg) as env:
+            scene_xml = (a.dataset/'scene.xml').read_text()
+            assets = {str(path.relative_to(a.dataset)): path.read_bytes() for path in (a.dataset/'assets').glob('*.png')}
+            with SLAMEnvironment(cfg, scene_xml=scene_xml, assets=assets) as env:
                 for row in frames:
                     t = int(row['timestamp_ns'])/1e9
                     measured = cv2.imread(str(a.dataset/row['rgb']))

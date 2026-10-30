@@ -8,7 +8,7 @@ os.environ.setdefault('MESA_SHADER_CACHE_DIR', '/tmp/mm3dgs-mesa-cache')
 import cv2
 import mujoco
 import numpy as np
-from .scene import build_scene, R_B_C, P_B_C
+from .scene import build_scene, build_assets, SCENE_VERSION, R_B_C, P_B_C
 from .trajectory import state
 
 SCENARIOS = ('rich', 'low_texture', 'blackout')
@@ -59,11 +59,13 @@ class SLAMEnvironment:
     next_tick() returns only public measurements. Truth is accessed explicitly
     with ground_truth(), and must never be passed to the estimator.
     """
-    def __init__(self, config=None, render=True):
+    def __init__(self, config=None, render=True, scene_xml=None, assets=None):
         self.cfg = config or Config()
         c = self.cfg
-        self.xml = build_scene(c.width, c.height, c.fovy, c.physics_hz, False)
-        self.model = mujoco.MjModel.from_xml_string(self.xml)
+        self.xml = scene_xml if scene_xml is not None else build_scene(c.width, c.height, c.fovy, c.physics_hz, False)
+        self.assets = dict(assets or {}) if scene_xml is not None else dict(build_assets())
+        self.scene_version = 'custom' if scene_xml is not None else SCENE_VERSION
+        self.model = mujoco.MjModel.from_xml_string(self.xml, assets=self.assets)
         self.data = mujoco.MjData(self.model)
         self._rich_materials = self.model.geom_matid.copy()
         self._rich_colors = self.model.geom_rgba.copy()
@@ -85,7 +87,7 @@ class SLAMEnvironment:
         fy = c.height/(2*np.tan(np.deg2rad(c.fovy)/2))
         T = np.eye(4); T[:3, :3] = R_B_C; T[:3, 3] = P_B_C
         result = {
-            'schema_version': 1,
+            'schema_version': 1, 'scene_version': self.scene_version,
             'camera': {'width': c.width, 'height': c.height, 'rate_hz': c.camera_hz,
                        'K': [[fy, 0, (c.width-1)/2], [0, fy, (c.height-1)/2], [0, 0, 1]],
                        'distortion': [0, 0, 0, 0, 0], 'model': 'pinhole',

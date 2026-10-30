@@ -3,30 +3,30 @@
     "rich": [
       {
         "time_s": 4.0,
-        "orb_keypoints": 729,
-        "valid_depth_fraction": 0.7330989583333334
+        "orb_keypoints": 727,
+        "valid_depth_fraction": 1.0
       },
       {
         "time_s": 9.0,
-        "orb_keypoints": 684,
-        "valid_depth_fraction": 0.8649739583333333
+        "orb_keypoints": 520,
+        "valid_depth_fraction": 1.0
       },
       {
         "time_s": 13.0,
-        "orb_keypoints": 819,
-        "valid_depth_fraction": 0.8113541666666667
+        "orb_keypoints": 694,
+        "valid_depth_fraction": 1.0
       },
       {
         "time_s": 18.0,
-        "orb_keypoints": 664,
-        "valid_depth_fraction": 0.6680598958333334
+        "orb_keypoints": 752,
+        "valid_depth_fraction": 1.0
       }
     ],
     "low_texture": [
       {
         "time_s": 4.0,
-        "orb_keypoints": 729,
-        "valid_depth_fraction": 0.7330989583333334
+        "orb_keypoints": 727,
+        "valid_depth_fraction": 1.0
       },
       {
         "time_s": 9.0,
@@ -35,20 +35,20 @@
       },
       {
         "time_s": 13.0,
-        "orb_keypoints": 819,
-        "valid_depth_fraction": 0.8113541666666667
+        "orb_keypoints": 694,
+        "valid_depth_fraction": 1.0
       },
       {
         "time_s": 18.0,
-        "orb_keypoints": 664,
-        "valid_depth_fraction": 0.6680598958333334
+        "orb_keypoints": 752,
+        "valid_depth_fraction": 1.0
       }
     ],
     "blackout": [
       {
         "time_s": 4.0,
-        "orb_keypoints": 729,
-        "valid_depth_fraction": 0.7330989583333334
+        "orb_keypoints": 727,
+        "valid_depth_fraction": 1.0
       },
       {
         "time_s": 9.0,
@@ -57,13 +57,13 @@
       },
       {
         "time_s": 13.0,
-        "orb_keypoints": 819,
-        "valid_depth_fraction": 0.8113541666666667
+        "orb_keypoints": 694,
+        "valid_depth_fraction": 1.0
       },
       {
         "time_s": 18.0,
-        "orb_keypoints": 664,
-        "valid_depth_fraction": 0.6680598958333334
+        "orb_keypoints": 752,
+        "valid_depth_fraction": 1.0
       }
     ]
   },

@@ -17,9 +17,13 @@ pytest -q
 
 On headless Linux the simulator defaults to EGL. This was exercised with Mesa software rendering, without a GPU. If EGL is unavailable, install your distribution's Mesa EGL runtime (`libegl1` and `libgl1-mesa-dri` on Ubuntu). An OSMesa installation can use `MUJOCO_GL=osmesa`; desktop Linux can use `MUJOCO_GL=glfw` with a display. On macOS/Windows MuJoCo selects its platform default; those platforms were not tested here.
 
-The default full resolution is 640×480. Use 320×240 for a faster first run. Dataset output directories must not already exist. A 24-second, 320×240 sequence uses about 280 MB before ZIP compression. `scene.xml` can be loaded directly in MuJoCo, but trajectory playback and sensor degradation are implemented by the Python environment.
+The default sensor resolution is 640×480. Use 320×240 for a faster first run. Dataset output directories must not already exist. A 24-second, 320×240 sequence uses about 280 MB before ZIP compression. `scene.xml` can be loaded directly in MuJoCo alongside its exported `assets/` folder; trajectory playback and sensor degradation are implemented by the Python environment.
 
 ## Preview video
+
+![Furnished MuJoCo studio](docs/studio.png)
+
+![Furnished MuJoCo studio](docs/studio.png)
 
 [Watch or download the 24-second simulator preview](docs/blackout_preview.mp4).
 
@@ -32,6 +36,14 @@ To regenerate a video from an exported sequence (requires `ffmpeg`):
 ```bash
 python scripts/make_preview.py runs/suite/blackout --out runs/blackout_preview.mp4
 ```
+
+## Studio interior
+
+The default `studio-v2` scene uses oak flooring, a teal feature wall, original framed prints, plants, bookshelves, a desk, chairs, a lounge area, windows, and ceiling fixtures. Warm/cool fill lighting and multisample rendering improve the preview without requiring CUDA. All textures are generated deterministically with the package; no external downloads are needed.
+
+The calibration metadata records `scene_version`. The camera trajectory, IMU noise/bias model, sensor rates, and 8–12 second degradation interval remain the same. Furniture keeps the camera path clear. Geometry, materials, shadows, and visual constraints differ from the original checkerboard scene, so compare estimators using the same scene version and exported measurements. The original scene remains in Git history at `49686c5`.
+
+Each exported sequence includes the XML and six PNG texture assets. The video script loads that saved scene, preserving the appearance of older exported sequences when the scene generator changes. The windows use opaque illustrated glazing, and lighting uses MuJoCo's rasterizer; this is a furnished synthetic interior rather than a physically based or ray-traced renderer. Richer geometry and shadows increase CPU rendering time.
 
 ## Experiments
 
@@ -144,7 +156,8 @@ For direct online use, construct `SLAMEnvironment(Config(...))` and call `next_t
 
 ```
 calibration.json          intrinsics, transforms, noise model, generation metadata
-scene.xml                 self-contained MuJoCo model
+scene.xml                 MuJoCo scene referencing the exported assets folder
+assets/*.png              six procedural textures; keep next to scene.xml
 frames.csv                timestamp_ns, relative RGB path, relative depth path
 imu.csv                   timestamp_ns, wx, wy, wz, ax, ay, az
 rgb/*.png                 RGB images (load as RGB, not OpenCV's default BGR)

@@ -16,6 +16,10 @@ def export_dataset(config, destination):
     with SLAMEnvironment(config) as env:
         (root/'calibration.json').write_text(json.dumps(env.calibration(include_generation=True), indent=2))
         (root/'scene.xml').write_text(env.xml)
+        for name, blob in env.assets.items():
+            asset_path = root/name
+            asset_path.parent.mkdir(parents=True, exist_ok=True)
+            asset_path.write_bytes(blob)
         with (root/'imu.csv').open('w', newline='') as fi, (root/'frames.csv').open('w', newline='') as ff, (root/'groundtruth'/'states.csv').open('w', newline='') as fg, (root/'groundtruth'/'camera.tum').open('w') as ft:
             iw, fw, gw = csv.writer(fi), csv.writer(ff), csv.writer(fg)
             iw.writerow(['timestamp_ns','wx','wy','wz','ax','ay','az'])

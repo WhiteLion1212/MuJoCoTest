@@ -58,3 +58,17 @@ def test_low_texture_has_rich_initialization_and_identical_depth_after_recovery(
             else:
                 np.testing.assert_array_equal(x['rgb'],y['rgb'])
                 np.testing.assert_array_equal(x['depth'],y['depth'])
+
+
+def test_studio_furniture_keeps_camera_path_clear():
+    from mm3dgs_bench.scene import P_B_C
+    from mm3dgs_bench.trajectory import state
+    with SLAMEnvironment(render=False) as env:
+        for t in np.linspace(0,24,97):
+            env._set_state(t)
+            p,r,*_ = state(t,24)
+            origin = p+r.apply(P_B_C)
+            for axis in np.r_[np.eye(3),-np.eye(3)]:
+                geom = np.array([-1],dtype=np.int32)
+                distance = mujoco.mj_ray(env.model,env.data,origin,axis,None,1,-1,geom)
+                assert distance > .25, (t, distance, geom)

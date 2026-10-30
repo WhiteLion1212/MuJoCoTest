@@ -122,3 +122,19 @@ def test_launcher_prepares_native_config(dataset,tmp_path):
     assert config['cam']['png_depth_scale']==1
     assert config['cam']['image_width']==64
     assert config['stride']==1
+
+
+def test_exported_scene_and_textures_reload_without_generator(dataset):
+    import cv2
+    import mujoco
+    from mm3dgs_bench import SLAMEnvironment
+    assert len(list((dataset/'assets').glob('*.png'))) == 6
+    saved = mujoco.MjModel.from_xml_path(str(dataset/'scene.xml'))
+    assets = {str(p.relative_to(dataset)):p.read_bytes() for p in (dataset/'assets').glob('*.png')}
+    cfg = Config(**json.loads((dataset/'calibration.json').read_text())['config'])
+    with SLAMEnvironment(cfg, scene_xml=(dataset/'scene.xml').read_text(), assets=assets) as env:
+        assert env.model.ngeom == saved.ngeom
+        frame = env.next_tick()['camera']
+        original = cv2.cvtColor(cv2.imread(str(dataset/'rgb'/'000000000000.png')),cv2.COLOR_BGR2RGB)
+        np.testing.assert_array_equal(frame['rgb'],original)
+        np.testing.assert_array_equal(frame['depth'],np.load(dataset/'depth'/'000000000000.npy'))

@@ -1,0 +1,78 @@
+{
+  "image_diagnostics": {
+    "rich": [
+      {
+        "time_s": 4.0,
+        "orb_keypoints": 729,
+        "valid_depth_fraction": 0.7330989583333334
+      },
+      {
+        "time_s": 9.0,
+        "orb_keypoints": 684,
+        "valid_depth_fraction": 0.8649739583333333
+      },
+      {
+        "time_s": 13.0,
+        "orb_keypoints": 819,
+        "valid_depth_fraction": 0.8113541666666667
+      },
+      {
+        "time_s": 18.0,
+        "orb_keypoints": 664,
+        "valid_depth_fraction": 0.6680598958333334
+      }
+    ],
+    "low_texture": [
+      {
+        "time_s": 4.0,
+        "orb_keypoints": 729,
+        "valid_depth_fraction": 0.7330989583333334
+      },
+      {
+        "time_s": 9.0,
+        "orb_keypoints": 0,
+        "valid_depth_fraction": 0.0
+      },
+      {
+        "time_s": 13.0,
+        "orb_keypoints": 819,
+        "valid_depth_fraction": 0.8113541666666667
+      },
+      {
+        "time_s": 18.0,
+        "orb_keypoints": 664,
+        "valid_depth_fraction": 0.6680598958333334
+      }
+    ],
+    "blackout": [
+      {
+        "time_s": 4.0,
+        "orb_keypoints": 729,
+        "valid_depth_fraction": 0.7330989583333334
+      },
+      {
+        "time_s": 9.0,
+        "orb_keypoints": 0,
+        "valid_depth_fraction": 0.0
+      },
+      {
+        "time_s": 13.0,
+        "orb_keypoints": 819,
+        "valid_depth_fraction": 0.8113541666666667
+      },
+      {
+        "time_s": 18.0,
+        "orb_keypoints": 664,
+        "valid_depth_fraction": 0.6680598958333334
+      }
+    ]
+  },
+  "outage_sanity": {
+    "scope": "Oracle boundary pose/velocity; biases estimated from stationary warm-up; sensor sanity only, not SLAM or proof of tight coupling",
+    "imu_endpoint_error_m": 0.05104647665764416,
+    "constant_velocity_endpoint_error_m": 4.437297019990703,
+    "imu_outage_rmse_m": 0.02198911148605202,
+    "constant_velocity_outage_rmse_m": 2.094821305900322
+  },
+  "warning": "ORB count is an image diagnostic, not a measure of dense SLAM observability or tracking accuracy."
+}

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mm3dgs-mujoco-bench"
+version = "0.1.0"
+description = "MuJoCo RGB-D/IMU stress tests for visual-inertial SLAM"
+requires-python = ">=3.10"
+dependencies = ["mujoco==3.3.7", "numpy>=1.26,<3", "scipy>=1.11,<2", "opencv-python-headless>=4.9,<5", "Pillow>=10,<13"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+plots = ["matplotlib>=3.8,<4"]
+
+[project.scripts]
+mm3dgs-bench = "mm3dgs_bench.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["mm3dgs_bench*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

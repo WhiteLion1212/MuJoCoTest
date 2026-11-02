@@ -19,6 +19,14 @@ On headless Linux the simulator defaults to EGL. This was exercised with Mesa so
 
 The default sensor resolution is 640×480. Use 320×240 for a faster first run. Dataset output directories must not already exist. A 24-second, 320×240 sequence uses about 280 MB before ZIP compression. `scene.xml` can be loaded directly in MuJoCo alongside its exported `assets/` folder; trajectory playback and sensor degradation are implemented by the Python environment.
 
+## Four-slide presentation
+
+- [PowerPoint with embedded video and speaker notes](docs/presentation/MuJoCo_SLAM_4_slides.pptx)
+- [Four-page PDF handout](docs/presentation/MuJoCo_SLAM_4_slides.pdf)
+- [Presenter guide: speaking script, demo cues, technical backup and sources](docs/presentation/PRESENTER_NOTES.md)
+
+The talk takes about 3–4 minutes. Slide 3 contains the 24-second demo. Use PowerPoint Slide Show and click the video; the PDF uses a still frame and an online video link. The deck distinguishes validated simulator/sensor checks from the full MM3DGS comparison that remains to be run.
+
 ## Preview video
 
 ![Furnished MuJoCo studio](docs/studio.png)

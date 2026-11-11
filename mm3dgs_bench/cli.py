@@ -18,8 +18,10 @@ def main():
     gen.add_argument('--seed',type=int,default=7)
     gen.add_argument('--imu-hz',type=int,default=100); gen.add_argument('--camera-hz',type=int,default=30)
     gen.add_argument('--physics-hz',type=int,default=600)
-    gen.add_argument('--blackout-start',type=float,default=8.); gen.add_argument('--blackout-end',type=float,default=12.)
+    gen.add_argument('--blackout-start','--impairment-start',type=float,default=8.)
+    gen.add_argument('--blackout-end','--impairment-end',type=float,default=12.)
     gen.add_argument('--depth-mode',choices=('gated','off','clean'),default='gated')
+    gen.add_argument('--blur-exposure-ms',type=float,default=30.)
     prev=sub.add_parser('preview',help='Render sample views and produce a sensor sanity report')
     prev.add_argument('--out',type=Path,required=True)
     run=sub.add_parser('replay',help='Run an estimator exposing reset/process_imu/process_frame')
@@ -28,6 +30,11 @@ def main():
     ev=sub.add_parser('evaluate',help='ATE, 1s RPE, and coverage, including blackout segments')
     ev.add_argument('dataset',type=Path); ev.add_argument('estimate',type=Path)
     ev.add_argument('--out',type=Path)
+    paired=sub.add_parser('compare',help='Causal predictions: identical visual-only and visual/IMU replays')
+    paired.add_argument('dataset',type=Path)
+    paired.add_argument('--out',type=Path,required=True)
+    paired.add_argument('--estimator',default='mm3dgs_bench.reference:Estimator',help='module:Class adapter')
+    paired.add_argument('--initialization-estimator',help='Optional module:Class using IMU for initialization only')
     args=parser.parse_args()
     if args.command=='generate':
         names=SCENARIOS if args.scenario=='suite' else (args.scenario,)
@@ -36,7 +43,8 @@ def main():
         for name in names:
             cfg=Config(scenario=name,width=args.width,height=args.height,duration=args.duration,seed=args.seed,
                        imu_hz=args.imu_hz,camera_hz=args.camera_hz,physics_hz=args.physics_hz,
-                       blackout_start=args.blackout_start,blackout_end=args.blackout_end,depth_mode=args.depth_mode)
+                       blackout_start=args.blackout_start,blackout_end=args.blackout_end,depth_mode=args.depth_mode,
+                       blur_exposure_s=args.blur_exposure_ms/1000)
             dest=args.out/name if args.scenario=='suite' else args.out
             if dest.exists(): parser.error(f'Output already exists: {dest}')
             jobs.append((cfg,dest))
@@ -55,6 +63,9 @@ def main():
         body=json.dumps(report,indent=2)
         if args.out: args.out.write_text(body+'\n')
         print(body)
+    elif args.command=='compare':
+        from .comparison import compare
+        print(json.dumps(compare(args.dataset,args.out,args.estimator,args.initialization_estimator),indent=2))
 
 
 if __name__=='__main__': main()

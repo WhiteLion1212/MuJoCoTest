@@ -10,8 +10,9 @@ import mujoco
 import numpy as np
 from .scene import build_scene, build_assets, SCENE_VERSION, R_B_C, P_B_C
 from .trajectory import state
+from .effects import environmental_effect
 
-SCENARIOS = ('rich', 'low_texture', 'blackout')
+SCENARIOS = ('rich', 'low_texture', 'blackout', 'motion_blur', 'dust', 'rain')
 
 
 @dataclass
@@ -35,6 +36,11 @@ class Config:
     accel_bias: tuple = (0.025, -0.015, 0.02)
     gyro_bias: tuple = (0.001, -0.0006, 0.0008)
     depth_noise: float = 0.005  # constant axial depth sigma, metres
+    blur_exposure_s: float = 0.030
+    blur_samples: int = 5
+    blur_gain: float = 0.60
+    blur_pixel_noise: float = 1.5
+    blur_depth_keep: float = 0.60
 
     def __post_init__(self):
         if self.scenario not in SCENARIOS or self.depth_mode not in ('gated', 'off', 'clean'):
@@ -46,9 +52,15 @@ class Config:
             raise ValueError('Positive integer rates; physics_hz must divide into integer sensor strides')
         if not 0 <= self.blackout_start < self.blackout_end:
             raise ValueError('Invalid blackout interval')
-        if self.scenario == 'blackout' and not 2 < self.blackout_start < self.blackout_end < self.duration-2:
-            raise ValueError('Blackout must follow initialization and precede final stationary period')
-        noises = (self.accel_noise_density, self.gyro_noise_density, self.accel_bias_rw, self.gyro_bias_rw, self.depth_noise)
+        if self.scenario in ('blackout', 'motion_blur', 'dust', 'rain') and not 2 < self.blackout_start < self.blackout_end < self.duration-2:
+            raise ValueError('Degradation must follow initialization and precede final stationary period')
+        if not np.isfinite(self.blur_exposure_s) or self.blur_exposure_s <= 0 or (self.scenario == 'motion_blur' and self.blur_exposure_s > 1/self.camera_hz):
+            raise ValueError('Blur exposure must be positive and no longer than one camera period')
+        if not isinstance(self.blur_samples, int) or self.blur_samples < 2:
+            raise ValueError('Blur requires at least two exposure samples')
+        if not 0 < self.blur_gain <= 1 or not 0 < self.blur_depth_keep <= 1:
+            raise ValueError('Blur gain and depth keep fraction must be in (0, 1]')
+        noises = (self.accel_noise_density, self.gyro_noise_density, self.accel_bias_rw, self.gyro_bias_rw, self.depth_noise, self.blur_pixel_noise)
         if any(not np.isfinite(v) or v < 0 for v in noises):
             raise ValueError('Noise parameters must be finite and nonnegative')
 
@@ -77,6 +89,7 @@ class SLAMEnvironment:
         # Separate streams ensure disabling depth does not change IMU noise.
         self.camera_rng = np.random.default_rng(self.cfg.seed+1000)
         self.image_rng = np.random.default_rng(self.cfg.seed+2000)
+        self.degradation_rng = np.random.default_rng(self.cfg.seed+3000)
         self.ba = np.array(self.cfg.accel_bias, dtype=float)
         self.bg = np.array(self.cfg.gyro_bias, dtype=float)
         self.tick = -1
@@ -91,7 +104,9 @@ class SLAMEnvironment:
             'camera': {'width': c.width, 'height': c.height, 'rate_hz': c.camera_hz,
                        'K': [[fy, 0, (c.width-1)/2], [0, fy, (c.height-1)/2], [0, 0, 1]],
                        'distortion': [0, 0, 0, 0, 0], 'model': 'pinhole',
-                       'shutter': 'global; instantaneous exposure', 'depth': 'optical z, metres; zero invalid'},
+                       'shutter': (f'global; trailing exposure up to {c.blur_exposure_s:g} s; timestamp at exposure end'
+                                   if c.scenario == 'motion_blur' else 'global; instantaneous exposure'),
+                       'depth': 'optical z, metres; zero invalid'},
             'imu': {'rate_hz': c.imu_hz,
                     'noise': {k: v for k, v in asdict(c).items() if k in ('accel_noise_density','gyro_noise_density','accel_bias_rw','gyro_bias_rw')}, 'accelerometer': 'specific force R_W_B.T @ (a_W - g_W), m/s^2',
                     'gyroscope': 'body angular velocity, rad/s',
@@ -155,6 +170,42 @@ class SLAMEnvironment:
         elif c.scenario == 'low_texture' and bad:
             rgb = cv2.GaussianBlur(rgb, (21, 21), 5)
             rgb = np.clip(rgb.astype(float)*.16 + self.image_rng.normal(0, 2, rgb.shape), 0, 255).astype(np.uint8)
+        elif c.scenario in ('dust', 'rain') and bad:
+            ramp = min(.3, (c.blackout_end-c.blackout_start)/4)
+            strength = np.clip(min(t-c.blackout_start, c.blackout_end-t)/ramp, 0, 1)
+            if strength:
+                rgb, invalid = environmental_effect(rgb, depth, c.scenario, strength, t, c.seed)
+                if c.depth_mode == 'gated':
+                    depth[invalid] = 0
+        elif c.scenario == 'motion_blur' and bad:
+            # Walking/turning through a dim patch: longer exposure, reduced SNR,
+            # and partial stereo confidence loss. Textures and geometry stay put.
+            ramp = min(.3, (c.blackout_end-c.blackout_start)/4)
+            strength = np.clip(min(t-c.blackout_start, c.blackout_end-t)/ramp, 0, 1)
+            if strength:
+                exposure = c.blur_exposure_s*strength
+                # Integrate actual camera motion over PAST poses. Averaging in
+                # display RGB is an approximation to a radiometric sensor model.
+                images = [rgb.astype(np.float32)*.5]
+                try:
+                    for i, offset in enumerate(np.linspace(exposure, 0, c.blur_samples)[:-1]):
+                        self._set_state(max(0, t-offset))
+                        self.renderer.update_scene(self.data, camera='rgbd')
+                        weight = .5 if i == 0 else 1.
+                        images.append(self.renderer.render().astype(np.float32)*weight)
+                finally:
+                    self._set_state(t)
+                integrated = np.sum(images, axis=0)/(c.blur_samples-1)
+                gain = 1-(1-c.blur_gain)*strength
+                noise = self.degradation_rng.normal(0, c.blur_pixel_noise*strength, rgb.shape)
+                rgb = np.clip(integrated*gain+noise, 0, 255).astype(np.uint8)
+                if c.depth_mode == 'gated':
+                    # Block confidence dropout is a simple passive-stereo proxy;
+                    # clean-depth mode tests the independent RGB-D sensor case.
+                    keep = 1-(1-c.blur_depth_keep)*strength
+                    blocks = self.degradation_rng.random(((c.height+7)//8, (c.width+7)//8)) < keep
+                    mask = np.repeat(np.repeat(blocks, 8, axis=0), 8, axis=1)[:c.height, :c.width]
+                    depth[~mask] = 0
         if c.depth_mode == 'off' or (c.depth_mode == 'gated' and bad and c.scenario in ('blackout', 'low_texture')):
             depth[:] = 0
         return {'timestamp_ns': round(t*1e9), 'rgb': rgb, 'depth': depth}

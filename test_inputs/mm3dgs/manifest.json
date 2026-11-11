@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "archive": "generated_datasets.zip",
+  "archive_sha256": "49041e0a85bb124ba13f3a381c9756fe965d5b34a5bb4adc2d6b0cce72c480ae",
+  "archive_size_bytes": 772189063,
+  "storage": "Git LFS",
+  "extract_command": "python scripts/prepare_mm3dgs_inputs.py --out inputs",
+  "shared_measurements": "Keep datasets/shared beside datasets/seed_*; frames.csv contains relative paths.",
+  "sequences": [
+    {
+      "path": "datasets/seed_11/motion_blur",
+      "scenario": "motion_blur",
+      "seed": 11,
+      "camera_frames": 721,
+      "imu_samples": 2401,
+      "camera_hz": 30,
+      "imu_hz": 100,
+      "width": 320,
+      "height": 240,
+      "impairment_interval_s": [
+        8.0,
+        12.0
+      ]
+    },
+    {
+      "path": "datasets/seed_11/rich",
+      "scenario": "rich",
+      "seed": 11,
+      "camera_frames": 721,
+      "imu_samples": 2401,
+      "camera_hz": 30,
+      "imu_hz": 100,
+      "width": 320,
+      "height": 240,
+      "impairment_interval_s": [
+        8.0,
+        12.0
+      ]
+    },
+    {
+      "path": "datasets/seed_19/motion_blur",
+      "scenario": "motion_blur",
+      "seed": 19,
+      "camera_frames": 721,
+      "imu_samples": 2401,
+      "camera_hz": 30,
+      "imu_hz": 100,
+      "width": 320,
+      "height": 240,
+      "impairment_interval_s": [
+        8.0,
+        12.0
+      ]
+    },
+    {
+      "path": "datasets/seed_19/rich",
+      "scenario": "rich",
+      "seed": 19,
+      "camera_frames": 721,
+      "imu_samples": 2401,
+      "camera_hz": 30,
+      "imu_hz": 100,
+      "width": 320,
+      "height": 240,
+      "impairment_interval_s": [
+        8.0,
+        12.0
+      ]
+    },
+    {
+      "path": "datasets/seed_7/blackout",
+      "scenario": "blackout",
+      "seed": 7,
+      "camera_frames": 721,
+      "imu_samples": 2401,
+      "camera_hz": 30,
+      "imu_hz": 100,
+      "width": 320,
+      "height": 240,
+      "impairment_interval_s": [
+        8.0,
+        12.0
+      ]
+    },
+    {
+      "path": "datasets/seed_7/dust",
+      "scenario": "dust",
+      "seed": 7,
+      "camera_frames": 721,
+      "imu_samples": 2401,
+      "camera_hz": 30,
+      "imu_hz": 100,
+      "width": 320,
+      "height": 240,
+      "impairment_interval_s": [
+        8.0,
+        12.0
+      ]
+    },
+    {
+      "path": "datasets/seed_7/low_texture",
+      "scenario": "low_texture",
+      "seed": 7,
+      "camera_frames": 721,
+      "imu_samples": 2401,
+      "camera_hz": 30,
+      "imu_hz": 100,
+      "width": 320,
+      "height": 240,
+      "impairment_interval_s": [
+        8.0,
+        12.0
+      ]
+    },
+    {
+      "path": "datasets/seed_7/motion_blur",
+      "scenario": "motion_blur",
+      "seed": 7,
+      "camera_frames": 721,
+      "imu_samples": 2401,
+      "camera_hz": 30,
+      "imu_hz": 100,
+      "width": 320,
+      "height": 240,
+      "impairment_interval_s": [
+        8.0,
+        12.0
+      ]
+    },
+    {
+      "path": "datasets/seed_7/rain",
+      "scenario": "rain",
+      "seed": 7,
+      "camera_frames": 721,
+      "imu_samples": 2401,
+      "camera_hz": 30,
+      "imu_hz": 100,
+      "width": 320,
+      "height": 240,
+      "impairment_interval_s": [
+        8.0,
+        12.0
+      ]
+    },
+    {
+      "path": "datasets/seed_7/rich",
+      "scenario": "rich",
+      "seed": 7,
+      "camera_frames": 721,
+      "imu_samples": 2401,
+      "camera_hz": 30,
+      "imu_hz": 100,
+      "width": 320,
+      "height": 240,
+      "impairment_interval_s": [
+        8.0,
+        12.0
+      ]
+    }
+  ],
+  "mm3dgs_modes": [
+    "cv",
+    "imu",
+    "imu-loss"
+  ],
+  "upstream_repository": "https://github.com/VITA-Group/MM3DGS-SLAM",
+  "bridge_checked_against_commit": "1fae9f5d1ad50a6159717b711ae54325422202e2",
+  "mm3dgs_cuda_execution_validated": false,
+  "video_and_archive_results_scope": "CPU RGB-D reference odometry; no MM3DGS tracking or mapping results."
+}

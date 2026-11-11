@@ -108,16 +108,19 @@ def test_official_results_conversion_round_trip(dataset,tmp_path):
     assert report['coverage']==1
 
 
-def test_launcher_prepares_native_config(dataset,tmp_path):
+@pytest.mark.parametrize('mode,dynamics,loss',[('cv','const_velocity',False),('imu','imu',False),('imu-loss','imu',True)])
+def test_launcher_prepares_native_config(dataset,tmp_path,mode,dynamics,loss):
     import subprocess,sys
     from pathlib import Path
     repo=tmp_path/'upstream';(repo/'configs').mkdir(parents=True)
     (repo/'configs'/'UTMM.yml').write_text('dataset: utmm\n')
     output=tmp_path/'output'
     subprocess.run([sys.executable,str(Path(__file__).parents[1]/'scripts'/'run_mm3dgs.py'),
-                    '--repo',str(repo),'--dataset',str(dataset),'--output',str(output),'--mode','cv','--prepare-only'],check=True)
+                    '--repo',str(repo),'--dataset',str(dataset),'--output',str(output),'--mode',mode,'--prepare-only'],check=True)
     config=json.loads((output/'config.json').read_text())
-    assert config['tracking']['dynamics_model']=='const_velocity'
+    assert config['tracking']['dynamics_model']==dynamics
+    assert config['tracking']['use_imu_loss'] is loss
+    assert config['tracking']['imu_weight']==1.
     assert config['tracking']['use_gt_pose'] is False
     assert config['cam']['png_depth_scale']==1
     assert config['cam']['image_width']==64
@@ -138,3 +141,50 @@ def test_exported_scene_and_textures_reload_without_generator(dataset):
         original = cv2.cvtColor(cv2.imread(str(dataset/'rgb'/'000000000000.png')),cv2.COLOR_BGR2RGB)
         np.testing.assert_array_equal(frame['rgb'],original)
         np.testing.assert_array_equal(frame['depth'],np.load(dataset/'depth'/'000000000000.npy'))
+
+
+def test_comparison_predicts_before_image_and_hides_generation_parameters(dataset,tmp_path,monkeypatch):
+    import mm3dgs_bench.comparison as comparison
+    instances=[]
+    class Adapter:
+        def reset(self, calibration):
+            assert 'config' not in calibration
+            self.camera_time=self.imu_time=-1
+            self.imu_calls=0
+        def process_imu(self, sample):
+            self.imu_time=sample['timestamp_ns']; self.imu_calls+=1
+        def predict_pose(self, timestamp_ns):
+            assert self.camera_time < timestamp_ns
+            assert self.imu_time <= timestamp_ns
+            return None if self.camera_time < 0 else np.eye(4)
+        def process_frame(self, frame):
+            self.camera_time=frame['timestamp_ns']
+            return np.eye(4)
+        def tracking_status(self):
+            return {'visual_update':False}
+    def instantiate(_):
+        result=Adapter(); instances.append(result); return result
+    monkeypatch.setattr(comparison,'_instantiate',instantiate)
+    output=tmp_path/'paired'
+    report=comparison.compare(dataset,output,'test:Adapter')
+    assert instances[0].imu_calls==0 and instances[1].imu_calls==601
+    assert len(np.loadtxt(output/'visual'/'prediction.tum'))==60
+    assert report['visual_tracking_continues'] is False
+    assert report['imu_benefit_validated'] is False
+    with pytest.raises(FileExistsError): comparison.compare(dataset,output,'test:Adapter')
+
+
+def test_matched_controls_allow_exposure_intervention_but_reject_different_depth_sensor(dataset,tmp_path):
+    import shutil
+    from mm3dgs_bench.comparison import control_identity
+    cloned=tmp_path/'impaired'
+    shutil.copytree(dataset,cloned)
+    original=control_identity(dataset)
+    meta=json.loads((cloned/'calibration.json').read_text())
+    meta['config']['scenario']='motion_blur'
+    meta['camera']['shutter']='finite exposure'
+    (cloned/'calibration.json').write_text(json.dumps(meta))
+    assert control_identity(cloned)==original
+    meta['config']['depth_noise']*=2
+    (cloned/'calibration.json').write_text(json.dumps(meta))
+    assert control_identity(cloned)!=original

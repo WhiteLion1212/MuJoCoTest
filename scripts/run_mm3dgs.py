@@ -8,6 +8,7 @@ only the standard library; it also works in this simulator's CPU environment.
 import argparse
 import importlib
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -17,9 +18,13 @@ def main():
     p.add_argument('--repo',required=True,type=Path)
     p.add_argument('--dataset',required=True,type=Path)
     p.add_argument('--output',required=True,type=Path)
-    p.add_argument('--mode',choices=['cv','imu'],default='imu')
+    p.add_argument('--mode',choices=['cv','imu','imu-loss'],default='imu',
+                   help='Visual prediction, IMU initialization, or IMU initialization plus pose-prior loss')
+    p.add_argument('--imu-weight',type=float,default=1.)
     p.add_argument('--prepare-only',action='store_true')
     args=p.parse_args()
+    if not math.isfinite(args.imu_weight) or args.imu_weight < 0 or (args.mode=='imu-loss' and args.imu_weight==0):
+        p.error('IMU weight must be finite and nonnegative; imu-loss requires a positive weight')
     repo=args.repo.resolve(); dataset=args.dataset.resolve(); output=args.output.resolve()
     if not (repo/'configs'/'UTMM.yml').is_file(): p.error('Missing official configs/UTMM.yml')
     cal=json.loads((dataset/'calibration.json').read_text())
@@ -33,7 +38,8 @@ def main():
                desired_height=camera['height'],desired_width=camera['width'])
     cfg['cam'].update(image_height=camera['height'],image_width=camera['width'],fx=K[0][0],fy=K[1][1],
                       cx=K[0][2],cy=K[1][2],crop_edge=0,png_depth_scale=1.,fps=camera['rate_hz'])
-    cfg['tracking'].update(dynamics_model='imu' if args.mode=='imu' else 'const_velocity',use_gt_pose=False,use_imu_loss=False)
+    cfg['tracking'].update(dynamics_model='const_velocity' if args.mode=='cv' else 'imu',use_gt_pose=False,
+                           use_imu_loss=args.mode=='imu-loss',imu_weight=args.imu_weight)
     # Invalid depth and NIQE on black frames can break the native mapper. Keep
     # native behavior visible: the bridge does not invent replacement measurements.
     output.mkdir(parents=True,exist_ok=True)

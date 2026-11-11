@@ -5,3 +5,5 @@ __pycache__/
 runs/
 *.zip
 work/
+inputs/
+!test_inputs/mm3dgs/*.zip

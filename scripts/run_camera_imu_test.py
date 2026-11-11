@@ -51,8 +51,6 @@ def main():
         rich = dataset.with_name('rich')
         if (rich/'summary.json').exists():
             command += ['--reference-dataset', str(rich)]
-        if not a.generate_only:
-            command += ['--results', str(result)]
         subprocess.run(command, check=True)
         (a.out/'metrics.json').write_text(json.dumps(controlled_summary(reports), indent=2)+'\n')
     print(f'Finished {len(jobs)} sequences and videos in {a.out}', flush=True)

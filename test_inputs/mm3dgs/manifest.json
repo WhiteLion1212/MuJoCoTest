@@ -166,5 +166,6 @@
   "upstream_repository": "https://github.com/VITA-Group/MM3DGS-SLAM",
   "bridge_checked_against_commit": "1fae9f5d1ad50a6159717b711ae54325422202e2",
   "mm3dgs_cuda_execution_validated": false,
-  "video_and_archive_results_scope": "CPU RGB-D reference odometry; no MM3DGS tracking or mapping results."
+  "archive_results_scope": "CPU RGB-D reference odometry; no MM3DGS tracking or mapping results.",
+  "videos_scope": "Clean reference camera and impaired camera input only; no estimator plots or IMU test overlays."
 }

@@ -17,56 +17,11 @@ import numpy as np
 from mm3dgs_bench import Config, SLAMEnvironment
 
 
-def prediction_chart(results, width, duration, interval):
-    curves = []
-    for mode, label, color in [('visual', 'Visual', (80, 160, 255)),
-                                ('imu_initialization', 'IMU init', (255, 170, 100)),
-                                ('imu_fused', 'IMU fused', (100, 220, 100))]:
-        path = results/mode/'prediction_errors.csv'
-        if path.exists():
-            data = np.atleast_2d(np.loadtxt(path, delimiter=',', skiprows=1))
-            if data.size:
-                curves.append((label, color, data))
-    if not curves:
-        raise ValueError('Results contain no prediction_errors.csv; run compare first')
-    ymax = max(10., max(float(data[:, 1].max()*1000) for _, _, data in curves)*1.05)
-    x0, x1, top, bottom = 48, width-12, 45, 143
-    base = np.full((180, width, 3), (26, 24, 22), np.uint8)
-    x = lambda t: round(x0+(x1-x0)*t/duration)
-    cv2.rectangle(base, (x(interval[0]), top), (x(interval[1]), bottom), (45, 40, 32), -1)
-    cv2.rectangle(base, (x0, top), (x1, bottom), (100, 100, 100), 1)
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(base, 'Next-frame motion prediction error (mm)', (8, 17), font, .43, (235, 235, 235), 1, cv2.LINE_AA)
-    cv2.putText(base, f'{ymax:.0f}', (4, top+5), font, .38, (200, 200, 200), 1, cv2.LINE_AA)
-    cv2.putText(base, '0', (29, bottom), font, .38, (200, 200, 200), 1, cv2.LINE_AA)
-    cv2.putText(base, '0s', (x0, bottom+18), font, .38, (200, 200, 200), 1, cv2.LINE_AA)
-    cv2.putText(base, f'{duration:g}s', (x1-35, bottom+18), font, .38, (200, 200, 200), 1, cv2.LINE_AA)
-    cv2.putText(base, 'Predictions before each new image; shaded interval = impairment', (8, 176), font, .35, (190, 190, 190), 1, cv2.LINE_AA)
-    paths = []
-    for label, color, data in curves:
-        px = x0+(x1-x0)*data[:, 0]/duration
-        py = bottom-(bottom-top)*data[:, 1]*1000/ymax
-        paths.append((label, color, data, np.rint(np.c_[px, py]).astype(np.int32)))
-
-    def draw(time_s):
-        panel = base.copy()
-        for i, (label, color, data, points) in enumerate(paths):
-            mask = data[:, 0] <= time_s+1e-9
-            if mask.sum() >= 2:
-                cv2.polylines(panel, [points[mask]], False, color, 1, cv2.LINE_AA)
-            value = f'{data[mask][-1, 1]*1000:.1f}' if mask.any() else '--'
-            cv2.putText(panel, f'{label}: {value}', (8+i*(width//3), 35), font, .4, color, 1, cv2.LINE_AA)
-        cv2.line(panel, (x(time_s), top), (x(time_s), bottom), (200, 200, 200), 1)
-        return panel
-    return draw
-
-
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('dataset', type=Path)
     p.add_argument('--out', required=True, type=Path)
     p.add_argument('--reference-dataset', type=Path, help='Optional matched rich sequence, for faster rendering')
-    p.add_argument('--results', type=Path, help='Comparison directory; adds per-frame prediction-error traces')
     a = p.parse_args()
     ffmpeg = shutil.which('ffmpeg')
     if ffmpeg is None:
@@ -74,9 +29,7 @@ def main():
     meta = json.loads((a.dataset/'calibration.json').read_text())
     cfg = Config(**{**meta['config'], 'scenario': 'rich'})
     width, height = cfg.width, cfg.height
-    chart = (prediction_chart(a.results, 2*width, cfg.duration, (cfg.blackout_start, cfg.blackout_end))
-             if a.results is not None else None)
-    output_height = height+60+(180 if chart else 0)
+    output_height = height+60
     with (a.dataset/'frames.csv').open() as f:
         frames = list(csv.DictReader(f))
     if a.reference_dataset is not None:
@@ -124,10 +77,8 @@ def main():
                     cv2.putText(canvas,meta['config']['scenario']+' camera input',(width+8,22),font,.46,(230,230,230),1,cv2.LINE_AA)
                     valid_depth = np.mean(np.load(a.dataset/row['depth'],allow_pickle=False)>0)
                     phase = 'IMPAIRED' if bad else 'normal'
-                    label = f't={t:05.2f}s | {phase} | valid depth {valid_depth:.0%} | IMU active'
+                    label = f't={t:05.2f}s | {phase} | valid depth {valid_depth:.0%}'
                     cv2.putText(canvas,label,(8,height+51),font,.49,(60,190,255) if bad else (220,220,220),1,cv2.LINE_AA)
-                    if chart:
-                        canvas[height+60:] = chart(t)
                     writer.write(canvas)
         finally:
             writer.release()
